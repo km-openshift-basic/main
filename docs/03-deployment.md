@@ -76,12 +76,12 @@ cat base/db-deployment.yaml
 
 ### 4. イメージ参照先の設定
 
-`base/kustomization.yaml` の `images` セクションで、`NAMESPACE` をご自身のプロジェクト名に更新します。
+`overlays/dev/kustomization.yaml` の `images` セクションで、`NAMESPACE` をご自身のプロジェクト名に更新します。
 
 ```bash
-# kustomization.yaml を編集
+# dev overlay の kustomization.yaml を編集
 # NAMESPACE を <user>-dev に変更
-vi base/kustomization.yaml
+vi overlays/dev/kustomization.yaml
 ```
 
 ```yaml
