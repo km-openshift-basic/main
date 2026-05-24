@@ -95,7 +95,7 @@ curl -s https://${APP_URL}/info | python3 -m json.tool
     "application": "openshift-workshop-app",
     "version": "1.0.0",
     "environment": "dev",
-    "java.version": "17.x.x",
+    "javaVersion": "17.x.x",
     "hostname": "app-xxxxxxxxxx-xxxxx"
 }
 ```
