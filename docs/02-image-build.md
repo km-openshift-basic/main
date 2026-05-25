@@ -34,7 +34,7 @@ Dockerfile はコンテナイメージを作成するための手順書です。
 ### 1. Dockerfile の確認
 
 ```bash
-cat src/main/docker/Dockerfile.jvm
+cat Dockerfile
 ```
 
 ポイント:
@@ -42,13 +42,12 @@ cat src/main/docker/Dockerfile.jvm
 - ステージ 1 で `mvn package` を実行してビルド
 - ステージ 2 で Quarkus の実行に必要なファイルのみをコピー
 
-### 2. OpenShift でイメージビルドを開始
+### 2. BuildConfig の作成
 
 ```bash
 oc new-build --name=workshop-app \
   --binary \
   --strategy=docker \
-  --dockerfile="$(cat src/main/docker/Dockerfile.jvm)" \
   -l app=workshop-app
 ```
 
