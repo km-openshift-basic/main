@@ -122,6 +122,79 @@ oc describe pod -l component=app
 
 環境変数やボリュームマウントの設定が確認できます。
 
+### 8. Flyway マイグレーションの動作確認
+
+アプリ Pod が起動すると、Flyway が自動で PostgreSQL にマイグレーションを適用します。実際に DB の中身を確認してみましょう。
+
+#### PostgreSQL Pod に接続
+
+```bash
+oc rsh deployment/db
+```
+
+#### psql でデータベースに接続
+
+```bash
+psql -U workshop -d workshop
+```
+
+#### マイグレーション履歴の確認
+
+Flyway は `flyway_schema_history` テーブルにマイグレーションの適用履歴を記録します。
+
+```sql
+SELECT version, description, installed_on, success FROM flyway_schema_history ORDER BY version;
+```
+
+期待される出力:
+```
+ version |     description      |      installed_on       | success
+---------+----------------------+-------------------------+---------
+ 1       | create notes         | 2026-05-26 01:30:00.000 | t
+ 2       | create notes seq     | 2026-05-26 01:30:00.000 | t
+ 3       | add status to notes  | 2026-05-26 01:30:00.000 | t
+ 4       | insert seed data     | 2026-05-26 01:30:00.000 | t
+```
+
+4つのマイグレーションがすべて `success = t` で適用されていることを確認してください。
+
+#### テーブル構造の確認
+
+```sql
+\d notes
+```
+
+V1 で作成されたテーブルに、V3 で追加された `status` 列と `updated_at` 列が反映されていることを確認します。
+
+#### シードデータの確認
+
+V4 で投入された初期データを確認します。
+
+```sql
+SELECT id, title, status, created_at FROM notes;
+```
+
+期待される出力:
+```
+ id |      title       | status |       created_at
+----+------------------+--------+-------------------------
+  1 | Welcome          | OPEN   | 2026-05-26 01:30:00.000
+  2 | Setup Complete   | DONE   | 2026-05-26 01:30:00.000
+  3 | Next Steps       | OPEN   | 2026-05-26 01:30:00.000
+```
+
+#### psql を終了
+
+```sql
+\q
+```
+
+```bash
+exit
+```
+
+> **ポイント**: Flyway によって、アプリ起動時にテーブル作成・スキーマ変更・初期データ投入が**自動的に**行われました。手動で `CREATE TABLE` や `INSERT` を実行する必要はありません。マイグレーションファイルを Git で管理しているため、どの環境でも同じ DB 状態を再現できます。
+
 ---
 
 **次のセクション**: [04. Service と Route](04-service-route.md)
