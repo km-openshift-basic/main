@@ -79,7 +79,7 @@ dev との差分:
 `overlays/prod/kustomization.yaml` の `images` セクションで `NAMESPACE` をプロジェクト名に更新します。
 
 ```bash
-vi overlays/prod/kustomization.yaml
+vim overlays/prod/kustomization.yaml
 ```
 
 ```yaml

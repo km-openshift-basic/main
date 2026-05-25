@@ -81,7 +81,7 @@ cat base/db-deployment.yaml
 ```bash
 # dev overlay の kustomization.yaml を編集
 # NAMESPACE を <user>-devspaces に変更
-vi overlays/dev/kustomization.yaml
+vim overlays/dev/kustomization.yaml
 ```
 
 ```yaml
