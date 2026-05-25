@@ -73,8 +73,21 @@
 ワークショップで作成したリソースを削除する場合:
 
 ```bash
+# 全環境 (dev + prod) を一括削除
 oc delete all -l app=workshop-app
 oc delete configmap,secret,pvc -l app=workshop-app
+```
+
+環境別に削除する場合:
+
+```bash
+# dev 環境のみ削除
+oc delete all -l env=dev
+oc delete configmap,secret,pvc -l env=dev
+
+# prod 環境のみ削除
+oc delete all -l env=prod
+oc delete configmap,secret,pvc -l env=prod
 ```
 
 > **注**: DevSpaces のプロジェクト (`<user>-devspaces`) 自体は削除しないでください。

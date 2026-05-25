@@ -117,4 +117,85 @@ curl -s https://${APP_URL}/notes | python3 -c "import sys,json; print(json.dumps
 
 ---
 
+### (Optional) PV を使った Maven キャッシュの高速化
+
+`oc start-build` でイメージをビルドするたびに Maven の依存関係が毎回ダウンロードされ、時間がかかります。PVC にキャッシュを永続化した Pod でビルドすることで、2 回目以降のビルドを大幅に短縮できます。
+
+#### 1. キャッシュ用 PVC の作成
+
+```bash
+oc create -f - <<'EOF'
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: maven-cache
+  labels:
+    app: workshop-app
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+EOF
+```
+
+#### 2. キャッシュ PVC をマウントしたビルド Pod を起動
+
+```bash
+oc create -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: build-pod
+  labels:
+    app: workshop-app
+spec:
+  securityContext:
+    fsGroup: $(oc get namespace $(oc project -q) -o jsonpath='{.metadata.annotations.openshift\.io/sa\.scc\.supplemental-groups}' | cut -d/ -f1)
+  containers:
+    - name: builder
+      image: registry.access.redhat.com/ubi8/openjdk-17:1.20
+      command: ["sleep", "3600"]
+      volumeMounts:
+        - name: cache
+          mountPath: /tmp/m2-cache
+  volumes:
+    - name: cache
+      persistentVolumeClaim:
+        claimName: maven-cache
+EOF
+oc wait --for=condition=Ready pod/build-pod
+```
+
+> **補足**: `fsGroup` を設定すると、PVC マウントポイントの所有グループが変更され、コンテナユーザーから書き込み可能になります。ここではヒアドキュメントの変数展開（`<<EOF`）を使って namespace から自動取得しています。
+
+#### 3. ソースコードをコピーしてビルド（1 回目 -- 遅い）
+
+```bash
+oc cp /projects/app build-pod:/tmp/build
+
+# 1回目: 依存関係がすべてダウンロードされ PVC にキャッシュされる
+time oc exec build-pod -- bash -c "cd /tmp/build && mvn package -DskipTests -B -Dmaven.repo.local=/tmp/m2-cache"
+```
+
+#### 4. 再ビルド（2 回目 -- 高速）
+
+```bash
+# ビルド出力をクリアして再ビルド
+time oc exec build-pod -- bash -c "cd /tmp/build && rm -rf target && mvn package -DskipTests -B -Dmaven.repo.local=/tmp/m2-cache"
+```
+
+2 回目は PVC にキャッシュされた依存関係が使われるため、`Downloading from` のログが大幅に減り、ビルド時間が短縮されることを確認してください。
+
+#### 5. クリーンアップ
+
+```bash
+oc delete pod build-pod
+```
+
+> **補足**: PVC `maven-cache` を削除せずに残しておけば、別の Pod からマウントして同じキャッシュを再利用できます。これが PVC によるデータ永続化のメリットです。
+
+---
+
 **次のセクション**: [07. ログの確認](07-logging.md)

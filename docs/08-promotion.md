@@ -41,9 +41,11 @@ base のマニフェストを共通定義とし、overlays で環境差分のみ
 
 ```
 base/           ← 共通のリソース定義
-overlays/dev/   ← dev 環境の差分（replicas=1, dev設定）
-overlays/prod/  ← prod 環境の差分（replicas=2, prod設定）
+overlays/dev/   ← dev 環境の差分（replicas=1, dev設定, env=dev ラベル）
+overlays/prod/  ← prod 環境の差分（replicas=2, prod設定, env=prod ラベル, prod- プレフィックス）
 ```
+
+> **同一プロジェクトでの共存**: prod overlay は `namePrefix: prod-` を使い、全リソース名に `prod-` を付与します。また `env: prod` / `env: dev` ラベルをセレクタに含めることで、dev と prod のリソースが同一プロジェクト内で衝突せず共存できます。
 
 ## ハンズオン
 
@@ -70,9 +72,15 @@ cat overlays/prod/patch-config.yaml
 ```
 
 dev との差分:
-- `replicas: 2` （アプリ Pod が 2 つ起動）
-- `APP_ENVIRONMENT: "prod"`
-- `APP_GREETING: "Hello from Production!"`
+
+| 項目 | dev | prod |
+|------|-----|------|
+| リソース名 | `app`, `db`, `db-pvc` ... | `prod-app`, `prod-db`, `prod-db-pvc` ... |
+| レプリカ数 | 1 | 2 |
+| 環境ラベル | `env: dev` | `env: prod` |
+| 挨拶メッセージ | "Hello from Dev environment!" | "Hello from Production!" |
+| DB 接続先 | `db:5432` | `prod-db:5432` |
+| イメージタグ | `latest` | `promoted` |
 
 ### 3. prod overlay のイメージ設定を更新
 
@@ -91,7 +99,7 @@ images:
 
 ### 4. prod 設定でデプロイ
 
-prod overlay を適用して、設定とレプリカ数を prod 仕様に切り替えます。
+prod overlay を適用します。`namePrefix: prod-` により、dev とは別のリソース群として作成されます。
 
 ```bash
 oc apply -k overlays/prod/
@@ -103,24 +111,27 @@ oc apply -k overlays/prod/
 oc get pods
 ```
 
-期待される出力（アプリ Pod が **2つ** 起動）:
+期待される出力（dev と prod の Pod が**共存**）:
 ```
-NAME                   READY   STATUS    RESTARTS   AGE
-app-xxxxxxxxxx-xxxxx   1/1     Running   0          30s
-app-xxxxxxxxxx-yyyyy   1/1     Running   0          30s
-db-xxxxxxxxxx-xxxxx    1/1     Running   0          30s
+NAME                        READY   STATUS    RESTARTS   AGE
+app-xxxxxxxxxx-xxxxx        1/1     Running   0          5m     ← dev (1台)
+db-xxxxxxxxxx-xxxxx         1/1     Running   0          5m     ← dev DB
+prod-app-xxxxxxxxxx-xxxxx   1/1     Running   0          30s    ← prod (2台)
+prod-app-xxxxxxxxxx-yyyyy   1/1     Running   0          30s    ← prod (2台)
+prod-db-xxxxxxxxxx-xxxxx    1/1     Running   0          30s    ← prod DB
 ```
 
 ### 6. prod 設定の動作確認
 
 ```bash
-export APP_URL=$(oc get route app -o jsonpath='{.spec.host}')
+# prod 用 Route は prod-app という名前
+export PROD_URL=$(oc get route prod-app -o jsonpath='{.spec.host}')
 
 # /info で環境が prod であることを確認
-curl -s https://${APP_URL}/info | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin), indent=4, ensure_ascii=False))"
+curl -s https://${PROD_URL}/info | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin), indent=4, ensure_ascii=False))"
 
 # /hello で prod 用メッセージを確認
-curl -s https://${APP_URL}/hello | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin), indent=4, ensure_ascii=False))"
+curl -s https://${PROD_URL}/hello | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin), indent=4, ensure_ascii=False))"
 ```
 
 期待される出力:
@@ -131,19 +142,28 @@ curl -s https://${APP_URL}/hello | python3 -c "import sys,json; print(json.dumps
 }
 ```
 
-### 7. dev 設定に戻す
+### 7. dev との比較確認
 
-確認が終わったら、dev overlay を再適用して元の状態に戻します。
-
-```bash
-oc apply -k overlays/dev/
-```
+dev と prod が同時に動いていることを確認します。
 
 ```bash
-curl -s https://${APP_URL}/info | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin), indent=4, ensure_ascii=False))"
+export DEV_URL=$(oc get route app -o jsonpath='{.spec.host}')
+
+# dev 側
+curl -s https://${DEV_URL}/info | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin), indent=4, ensure_ascii=False))"
+
+# prod 側
+curl -s https://${PROD_URL}/info | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin), indent=4, ensure_ascii=False))"
 ```
 
-環境が `dev` に戻っていることを確認してください。
+### 8. prod リソースの削除（オプション）
+
+prod 環境のみ削除したい場合:
+
+```bash
+oc delete all -l env=prod
+oc delete configmap,secret,pvc -l env=prod
+```
 
 ---
 
