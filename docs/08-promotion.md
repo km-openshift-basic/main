@@ -1,4 +1,4 @@
-# 08. プロモーション: dev → prod
+# 08. プロモーション
 
 > 所要時間: 15分（座学 3分 + ハンズオン 12分）
 
@@ -23,7 +23,7 @@
 「dev で検証済みのイメージを prod にデプロイする」という考え方です。
 
 ```
-dev 環境                          prod 環境
+dev 設定                            prod 設定
 ┌──────────────┐                 ┌──────────────┐
 │ workshop-app │  ── oc tag ──▶  │ workshop-app │
 │   :latest    │                 │  :promoted   │
@@ -31,7 +31,9 @@ dev 環境                          prod 環境
 ```
 
 - dev でビルド・検証したイメージをそのまま prod に渡す（再ビルドしない）
-- `oc tag` でイメージを別プロジェクトにコピー（タグ付け）
+- `oc tag` でイメージにタグ付け（検証済みであることを明示）
+
+> **本ワークショップでは**: 通常は dev / prod で別プロジェクトを使いますが、今回は `<user>-devspaces` プロジェクト 1 つで実施します。同一プロジェクト内でイメージタグとKustomize overlay を切り替えることで、プロモーションの流れを体験します。
 
 ### Kustomize overlays
 
@@ -45,26 +47,22 @@ overlays/prod/  ← prod 環境の差分（replicas=2, prod設定）
 
 ## ハンズオン
 
-### 1. prod プロジェクトの作成
+### 1. イメージのプロモーション
+
+dev 設定で検証済みのイメージに `promoted` タグを付与します。
 
 ```bash
-oc new-project <user>-prod
-```
-
-### 2. イメージのプロモーション
-
-dev 環境のイメージを prod にタグ付けします。
-
-```bash
-oc tag <user>-dev/workshop-app:latest <user>-prod/workshop-app:promoted
+oc tag workshop-app:latest workshop-app:promoted
 ```
 
 確認:
 ```bash
-oc get is -n <user>-prod
+oc get is workshop-app
 ```
 
-### 3. prod overlay の確認
+`latest` と `promoted` の 2 つのタグが表示されます。
+
+### 2. prod overlay の確認
 
 ```bash
 cat overlays/prod/kustomization.yaml
@@ -76,9 +74,9 @@ dev との差分:
 - `APP_ENVIRONMENT: "prod"`
 - `APP_GREETING: "Hello from Production!"`
 
-### 4. prod overlay のイメージ設定を更新
+### 3. prod overlay のイメージ設定を更新
 
-`overlays/prod/kustomization.yaml` の `images` セクションで `NAMESPACE` を prod プロジェクト名に更新します。
+`overlays/prod/kustomization.yaml` の `images` セクションで `NAMESPACE` をプロジェクト名に更新します。
 
 ```bash
 vi overlays/prod/kustomization.yaml
@@ -87,18 +85,19 @@ vi overlays/prod/kustomization.yaml
 ```yaml
 images:
   - name: workshop-app
-    newName: image-registry.openshift-image-registry.svc:5000/<user>-prod/workshop-app
+    newName: image-registry.openshift-image-registry.svc:5000/<user>-devspaces/workshop-app
     newTag: promoted
 ```
 
-### 5. prod 環境にデプロイ
+### 4. prod 設定でデプロイ
+
+prod overlay を適用して、設定とレプリカ数を prod 仕様に切り替えます。
 
 ```bash
-oc project <user>-prod
 oc apply -k overlays/prod/
 ```
 
-### 6. Pod の状態確認
+### 5. Pod の状態確認
 
 ```bash
 oc get pods
@@ -112,16 +111,16 @@ app-xxxxxxxxxx-yyyyy   1/1     Running   0          30s
 db-xxxxxxxxxx-xxxxx    1/1     Running   0          30s
 ```
 
-### 7. prod 環境の動作確認
+### 6. prod 設定の動作確認
 
 ```bash
-export PROD_URL=$(oc get route app -o jsonpath='{.spec.host}')
+export APP_URL=$(oc get route app -o jsonpath='{.spec.host}')
 
 # /info で環境が prod であることを確認
-curl -s https://${PROD_URL}/info | python3 -m json.tool
+curl -s https://${APP_URL}/info | python3 -m json.tool
 
 # /hello で prod 用メッセージを確認
-curl -s https://${PROD_URL}/hello | python3 -m json.tool
+curl -s https://${APP_URL}/hello | python3 -m json.tool
 ```
 
 期待される出力:
@@ -132,26 +131,23 @@ curl -s https://${PROD_URL}/hello | python3 -m json.tool
 }
 ```
 
-### 8. 環境の独立性を確認
+### 7. dev 設定に戻す
 
-prod の DB は dev とは完全に独立しています。
+確認が終わったら、dev overlay を再適用して元の状態に戻します。
 
 ```bash
-# prod でノートを作成
-curl -s -X POST https://${PROD_URL}/notes \
-  -H "Content-Type: application/json" \
-  -d '{"title": "Prod ノート", "content": "これは prod 環境のデータです"}' | python3 -m json.tool
-
-# prod のノート一覧（prod のデータのみ表示される）
-curl -s https://${PROD_URL}/notes | python3 -m json.tool
-
-# dev に戻ってノート一覧を確認（dev のデータのみ）
-curl -s https://${APP_URL}/notes | python3 -m json.tool
+oc apply -k overlays/dev/
 ```
+
+```bash
+curl -s https://${APP_URL}/info | python3 -m json.tool
+```
+
+環境が `dev` に戻っていることを確認してください。
 
 ---
 
-> **ポイント**: ここで手動実行した「イメージタグ付け → prod へのデプロイ」は、次回の CD 編 (ArgoCD) で **自動化** されます。Git リポジトリにマニフェストを push するだけで、ArgoCD が自動的に検知・Sync します。
+> **ポイント**: ここで手動実行した「イメージタグ付け → prod 設定でのデプロイ」は、次回の CD 編 (ArgoCD) で **自動化** されます。Git リポジトリにマニフェストを push するだけで、ArgoCD が自動的に検知・Sync します。
 
 ---
 

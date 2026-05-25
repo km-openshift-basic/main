@@ -70,12 +70,14 @@
 
 ## クリーンアップ
 
-ワークショップ環境を削除する場合:
+ワークショップで作成したリソースを削除する場合:
 
 ```bash
-oc delete project <user>-dev
-oc delete project <user>-prod
+oc delete all -l app=workshop-app
+oc delete configmap,secret,pvc -l app=workshop-app
 ```
+
+> **注**: DevSpaces のプロジェクト (`<user>-devspaces`) 自体は削除しないでください。
 
 ## Q&A
 
