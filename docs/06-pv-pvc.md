@@ -84,10 +84,10 @@ db-pvc   Bound    pvc-xxx   1Gi        RWO            gp3-csi        5m
 # ノートを作成
 curl -s -X POST https://${APP_URL}/notes \
   -H "Content-Type: application/json" \
-  -d '{"title": "PVC テスト", "content": "このデータは永続化されます"}' | python3 -m json.tool
+  -d '{"title": "PVC テスト", "content": "このデータは永続化されます"}' | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin), indent=4, ensure_ascii=False))"
 
 # ノート一覧を確認
-curl -s https://${APP_URL}/notes | python3 -m json.tool
+curl -s https://${APP_URL}/notes | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin), indent=4, ensure_ascii=False))"
 ```
 
 ### 5. Pod 削除によるデータ永続化の検証
@@ -108,7 +108,7 @@ oc rollout restart deployment/app
 oc rollout status deployment/app
 
 # データが残っていることを確認
-curl -s https://${APP_URL}/notes | python3 -m json.tool
+curl -s https://${APP_URL}/notes | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin), indent=4, ensure_ascii=False))"
 ```
 
 先ほど保存したノートが表示されれば、PVC によるデータ永続化が正常に動作しています。

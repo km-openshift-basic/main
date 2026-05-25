@@ -83,10 +83,10 @@ echo "https://${APP_URL}"
 
 ```bash
 # /hello エンドポイント
-curl -s https://${APP_URL}/hello | python3 -m json.tool
+curl -s https://${APP_URL}/hello | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin), indent=4, ensure_ascii=False))"
 
 # /info エンドポイント
-curl -s https://${APP_URL}/info | python3 -m json.tool
+curl -s https://${APP_URL}/info | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin), indent=4, ensure_ascii=False))"
 ```
 
 期待される出力 (`/info`):

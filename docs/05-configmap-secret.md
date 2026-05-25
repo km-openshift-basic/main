@@ -50,7 +50,7 @@ cat overlays/dev/patch-config.yaml
 
 ```bash
 # 現在の値を確認
-curl -s https://${APP_URL}/hello | python3 -m json.tool
+curl -s https://${APP_URL}/hello | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin), indent=4, ensure_ascii=False))"
 ```
 
 `overlays/dev/patch-config.yaml` を編集:
@@ -76,7 +76,7 @@ oc rollout status deployment/app
 ### 4. 変更の確認
 
 ```bash
-curl -s https://${APP_URL}/hello | python3 -m json.tool
+curl -s https://${APP_URL}/hello | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin), indent=4, ensure_ascii=False))"
 ```
 
 期待される出力:
@@ -129,7 +129,38 @@ env:
         key: database-password
 ```
 
-### 7. DB Pod での Secret 参照確認
+### 7. Pod に Secret の値が渡っていることを確認
+
+実際に稼働している Pod の環境変数を確認して、Secret の値が正しく注入されているか検証します。
+
+```bash
+# App Pod の環境変数から DB 接続情報を確認
+oc exec deployment/app -- env | grep DB_
+```
+
+期待される出力:
+```
+DB_USERNAME=workshop
+DB_PASSWORD=workshop123
+DB_URL=jdbc:postgresql://db:5432/workshop
+```
+
+DB Pod 側でも確認します:
+
+```bash
+oc exec deployment/db -- env | grep POSTGRESQL_
+```
+
+期待される出力:
+```
+POSTGRESQL_USER=workshop
+POSTGRESQL_PASSWORD=workshop123
+POSTGRESQL_DATABASE=workshop
+```
+
+App Pod と DB Pod の両方で、Secret から注入されたユーザー名・パスワードが一致していることがわかります。
+
+### 8. DB Pod での Secret 参照確認
 
 ```bash
 cat base/db-deployment.yaml

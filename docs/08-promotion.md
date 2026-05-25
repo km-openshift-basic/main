@@ -117,10 +117,10 @@ db-xxxxxxxxxx-xxxxx    1/1     Running   0          30s
 export APP_URL=$(oc get route app -o jsonpath='{.spec.host}')
 
 # /info で環境が prod であることを確認
-curl -s https://${APP_URL}/info | python3 -m json.tool
+curl -s https://${APP_URL}/info | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin), indent=4, ensure_ascii=False))"
 
 # /hello で prod 用メッセージを確認
-curl -s https://${APP_URL}/hello | python3 -m json.tool
+curl -s https://${APP_URL}/hello | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin), indent=4, ensure_ascii=False))"
 ```
 
 期待される出力:
@@ -140,7 +140,7 @@ oc apply -k overlays/dev/
 ```
 
 ```bash
-curl -s https://${APP_URL}/info | python3 -m json.tool
+curl -s https://${APP_URL}/info | python3 -c "import sys,json; print(json.dumps(json.load(sys.stdin), indent=4, ensure_ascii=False))"
 ```
 
 環境が `dev` に戻っていることを確認してください。
