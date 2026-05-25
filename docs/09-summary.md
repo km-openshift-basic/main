@@ -85,6 +85,26 @@
 - **第2回: CI 編 (Tekton)** -- テストとビルドを Tekton Pipeline で自動化
 - **第3回: CD 編 (ArgoCD)** -- Git push をトリガーにデプロイを ArgoCD で自動化
 
+## 本日使用した OpenShift リソースの全体像
+
+```
+┌── Deployment ──────── ReplicaSet ──────── Pod ←── コンテナの実行
+│
+├── Service ─────────── Pod への内部通信（DNS名でアクセス）
+│
+├── Route ──────────── Service の外部公開（HTTPS）
+│
+├── ConfigMap ─────── 設定値を Pod に環境変数として注入
+│
+├── Secret ──────────── 機密情報を Pod に環境変数として注入
+│
+├── PVC ─────────────── PV に紐付き、Pod にストレージを提供
+│
+├── BuildConfig ────── Build（Pod）を起動してイメージをビルド
+│
+└── ImageStream ───── ビルド済みイメージのタグ管理・プロモーション
+```
+
 ## クリーンアップ
 
 ワークショップで作成したリソースを削除する場合:

@@ -51,18 +51,44 @@
 └─────────────────────────────────────────────────┘
 ```
 
+## OpenShift と Kubernetes の関係
+
+OpenShift は Kubernetes をベースに、エンタープライズ向けの機能を追加したプラットフォームです。
+
+```
+┌─────────────────────────────────────────┐
+│           OpenShift                      │
+│  ┌────────────────────────────────────┐ │
+│  │  Route / BuildConfig / ImageStream │ │  ← OpenShift 固有
+│  │  Project / SCC / DeploymentConfig  │ │
+│  ├────────────────────────────────────┤ │
+│  │         Kubernetes                 │ │  ← 標準 K8s リソース
+│  │  Pod / Deployment / Service        │ │
+│  │  ConfigMap / Secret / PVC          │ │
+│  │  Ingress / Namespace              │ │
+│  └────────────────────────────────────┘ │
+└─────────────────────────────────────────┘
+```
+
+- Kubernetes の `kubectl` コマンドはすべて使えますが、OpenShift では `oc` コマンドが追加機能を提供します
+- 本ワークショップで使う Deployment, Service, ConfigMap, Secret, PVC は **Kubernetes 標準リソース**であり、どの Kubernetes 環境でも使えます
+- Route, BuildConfig, ImageStream は **OpenShift 固有リソース**です
+
 ## OpenShift 基本概念の復習
 
 | 概念 | 説明 |
 |------|------|
-| **Pod** | コンテナの実行単位。1つ以上のコンテナを含む |
+| **Pod** | コンテナの実行単位。1つ以上のコンテナを含む。OpenShift で最小のデプロイ単位 |
 | **Deployment** | Pod のデプロイと管理（レプリカ数、ローリングアップデート等） |
+| **ReplicaSet** | Deployment が内部的に作成するリソース。指定数の Pod を常に維持する |
 | **Service** | Pod へのネットワークアクセスを提供する抽象レイヤー |
-| **Route** | Service を外部に公開するための OpenShift 固有リソース |
+| **Route** | Service を外部に公開するための OpenShift 固有リソース（K8s の Ingress に相当） |
 | **ConfigMap** | 設定データを Key-Value で管理 |
-| **Secret** | 機密データを暗号化して管理 |
-| **PVC** | 永続ストレージの要求 |
-| **Project** | Kubernetes の Namespace に相当。リソースの分離単位 |
+| **Secret** | 機密データを管理（Base64 エンコード + ETCD 暗号化で保護） |
+| **PVC** | 永続ストレージの要求。Pod のライフサイクルとは独立してデータを保持 |
+| **BuildConfig** | コンテナイメージのビルド手順を定義する OpenShift 固有リソース |
+| **ImageStream** | ビルドしたイメージのタグ管理・参照を行う OpenShift 固有リソース |
+| **Project** | Kubernetes の Namespace に RBAC やリソース制限を追加したもの。リソースの分離単位 |
 
 ## ハンズオン: 環境セットアップ
 

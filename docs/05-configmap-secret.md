@@ -16,12 +16,21 @@
 - Base64 エンコードで保存（暗号化ではない。ETCD 暗号化で保護）
 - ConfigMap と同様に環境変数やファイルとして注入可能
 
+> **注意**: Base64 は**エンコード**であり**暗号化ではありません**。`base64 -d` で誰でもデコードできます。Secret が安全なのは、ETCD の暗号化と RBAC（アクセス制御）によるものです。マニフェストを Git に保存する際は、Secret の値を平文で含めないよう注意してください（本番では Sealed Secrets や External Secrets Operator の利用を推奨）。
+
 ### 注入方法の比較
 
 | 方法 | 用途 | 例 |
 |------|------|-----|
 | `env` / `envFrom` | 環境変数として注入 | DB 接続 URL、アプリ設定 |
 | `volumeMounts` | ファイルとしてマウント | 証明書、設定ファイル |
+
+### ConfigMap / Secret 変更時の注意点
+
+ConfigMap や Secret を更新しても、**既に稼働している Pod には自動反映されません**。反映には以下のいずれかが必要です。
+
+- `oc rollout restart deployment/<name>` で Pod を再起動
+- ボリュームマウント方式の場合は、数分後に自動反映される（環境変数方式では不可）
 
 ### 本アプリでの使い分け
 
@@ -167,6 +176,8 @@ cat base/db-deployment.yaml
 ```
 
 PostgreSQL コンテナでも同じ Secret を参照しています（`POSTGRESQL_USER`, `POSTGRESQL_PASSWORD`, `POSTGRESQL_DATABASE`）。
+
+> **現場での話**: 手動運用で最も多い事故の一つが「dev の設定を prod に適用してしまう」です。例えば、dev 用の DB 接続先を prod にそのまま適用し、本番データが dev の DB を参照してしまうケースがあります。Kustomize overlays + ArgoCD で環境ごとの設定を Git 管理すれば、こうした**ヒューマンエラーを構造的に防止**できます。
 
 ---
 

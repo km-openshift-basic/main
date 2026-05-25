@@ -24,10 +24,26 @@ Dockerfile はコンテナイメージを作成するための手順書です。
 | 概念 | 説明 |
 |------|------|
 | **BuildConfig** | ビルドの設定を定義するリソース（ソース、Dockerfile、出力先等） |
-| **Build** | BuildConfig に基づく実際のビルド実行 |
+| **Build** | BuildConfig に基づく実際のビルド実行。Pod として起動され、完了後に自動削除される |
 | **ImageStream** | OpenShift 内部でイメージを管理するリソース。タグ管理やトリガーに使用 |
 
 `oc new-build` コマンドは、BuildConfig と ImageStream を自動作成します。
+
+### OpenShift 内部レジストリ
+
+OpenShift には**内部コンテナレジストリ**が組み込まれています。
+
+- ビルドしたイメージはこの内部レジストリに自動で push される
+- クラスタ内部からは `image-registry.openshift-image-registry.svc:5000/<project>/<image>:<tag>` でアクセス
+- 外部のレジストリ（Docker Hub, Quay.io 等）も利用可能だが、内部レジストリを使うことでネットワーク遅延を回避できる
+
+### ImageStream の役割
+
+ImageStream は単なるイメージの参照先リストですが、OpenShift のデプロイと連携する点で重要です。
+
+- イメージの**タグ変更を検知**して、Deployment の自動更新トリガーにできる
+- `oc tag` コマンドでタグを操作し、プロモーション（dev → prod）を実現する
+- 外部レジストリのイメージも ImageStream として取り込める
 
 ## ハンズオン
 
