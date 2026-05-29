@@ -48,12 +48,23 @@ INFO  [org.fly.cor.int.com.DbMigrate] Successfully applied 1 migration ...
 oc logs -f deployment/app
 ```
 
-別のターミナルからリクエストを送ると、ログにアクセス記録が表示されます:
+別のターミナルを開き、リクエストを送ると HTTP アクセスログがリアルタイムで表示されます:
 
 ```bash
+# 別のターミナルでは APP_URL が未設定のため、再取得する
+export APP_URL=$(oc get route app -o jsonpath='{.spec.host}')
+
 curl -s https://${APP_URL}/hello
 curl -s https://${APP_URL}/notes
 ```
+
+アクセスログの出力例:
+```
+127.0.0.1 - - [26/May/2026:10:15:30 +0000] "GET /hello HTTP/1.1" 200 60
+127.0.0.1 - - [26/May/2026:10:15:35 +0000] "GET /notes HTTP/1.1" 200 245
+```
+
+> **補足**: 本アプリでは `application.properties` で `quarkus.http.access-log.enabled=true` を設定しているため、すべての HTTP リクエストがログに記録されます。
 
 ログの追跡を終了するには `Ctrl + C` を押します。
 

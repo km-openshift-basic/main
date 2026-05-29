@@ -14,7 +14,7 @@
 | 項目 | dev | prod |
 |------|-----|------|
 | アプリレプリカ数 | 1 | 2 |
-| 挨拶メッセージ | "Hello from Dev environment!" | "Hello from Production!" |
+| 挨拶メッセージ | "こんにちは、OpenShift ワークショップへようこそ！"（05 で変更済み） | "Hello from Production!" |
 | 環境名 | dev | prod |
 | DB | 独立した PostgreSQL | 独立した PostgreSQL |
 
@@ -80,17 +80,26 @@ dev との差分:
 | リソース名 | `app`, `db`, `db-pvc` ... | `prod-app`, `prod-db`, `prod-db-pvc` ... |
 | レプリカ数 | 1 | 2 |
 | 環境ラベル | `env: dev` | `env: prod` |
-| 挨拶メッセージ | "Hello from Dev environment!" | "Hello from Production!" |
+| 挨拶メッセージ | "こんにちは、OpenShift ワークショップへようこそ！"（05 で変更済み） | "Hello from Production!" |
 | DB 接続先 | `db:5432` | `prod-db:5432` |
 | イメージタグ | `latest` | `promoted` |
 
 ### 3. prod overlay のイメージ設定を更新
 
-`overlays/prod/kustomization.yaml` の `images` セクションで `NAMESPACE` をプロジェクト名に更新します。
+`overlays/prod/kustomization.yaml` の `images` セクションで `<user>-devspaces` をご自身のプロジェクト名に更新します。
 
 ```bash
-vim overlays/prod/kustomization.yaml
+# <user>-devspaces を自分のプロジェクト名に置換
+sed -i "s/<user>-devspaces/$(oc project -q)/g" overlays/prod/kustomization.yaml
 ```
+
+置換結果を確認:
+
+```bash
+cat overlays/prod/kustomization.yaml
+```
+
+`images` セクションが以下のようになっていれば OK です:
 
 ```yaml
 images:
@@ -144,9 +153,9 @@ curl -s https://${PROD_URL}/hello | python3 -c "import sys,json; print(json.dump
 }
 ```
 
-### 7. dev との比較確認
+### 7. dev と prod の比較確認
 
-dev と prod が同時に動いていることを確認します。
+ここでは、**同一プロジェクト内で dev と prod が同時に動作していること**、そして**それぞれが独立した設定（環境名、挨拶メッセージ、レプリカ数等）で稼働していること**を確認します。これにより、Kustomize overlays による環境分離が正しく機能していることが実証できます。
 
 ```bash
 export DEV_URL=$(oc get route app -o jsonpath='{.spec.host}')
@@ -175,4 +184,4 @@ oc delete configmap,secret,pvc -l env=prod
 
 ---
 
-**次のセクション**: [09. まとめ](09-summary.md)
+**次のセクション**: [10. 補足: RBAC と ServiceAccount](10-rbac.md)

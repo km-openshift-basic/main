@@ -96,13 +96,20 @@ cat base/db-deployment.yaml
 
 ### 4. イメージ参照先の設定
 
-`overlays/dev/kustomization.yaml` の `images` セクションで、`NAMESPACE` をご自身のプロジェクト名に更新します。
+`overlays/dev/kustomization.yaml` の `images` セクションで、`<user>-devspaces` をご自身のプロジェクト名に更新します。
 
 ```bash
-# dev overlay の kustomization.yaml を編集
-# NAMESPACE を <user>-devspaces に変更
-vim overlays/dev/kustomization.yaml
+# <user>-devspaces を自分のプロジェクト名に置換
+sed -i "s/<user>-devspaces/$(oc project -q)/g" overlays/dev/kustomization.yaml
 ```
+
+置換後の確認:
+
+```bash
+cat overlays/dev/kustomization.yaml
+```
+
+`images` セクションが以下のようになっていれば OK です:
 
 ```yaml
 images:
@@ -196,12 +203,14 @@ SELECT id, title, status, created_at FROM notes;
 
 期待される出力:
 ```
- id |      title       | status |       created_at
-----+------------------+--------+-------------------------
-  1 | Welcome          | OPEN   | 2026-05-26 01:30:00.000
-  2 | Setup Complete   | DONE   | 2026-05-26 01:30:00.000
-  3 | Next Steps       | OPEN   | 2026-05-26 01:30:00.000
+  id |      title       | status |       created_at
+-----+------------------+--------+-------------------------
+  51 | Welcome          | OPEN   | 2026-05-26 01:30:00.000
+ 101 | Setup Complete   | DONE   | 2026-05-26 01:30:00.000
+ 151 | Next Steps       | OPEN   | 2026-05-26 01:30:00.000
 ```
+
+> **補足**: ID が 51, 101, 151 となるのは、Hibernate 用シーケンス (`notes_seq`) が `INCREMENT BY 50` で定義されているためです。
 
 #### psql を終了
 
