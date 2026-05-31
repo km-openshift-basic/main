@@ -114,7 +114,7 @@ cat overlays/dev/kustomization.yaml
 ```yaml
 images:
   - name: workshop-app
-    newName: image-registry.openshift-image-registry.svc:5000/<user>-devspaces/workshop-app
+    newName: image-registry.openshift-image-registry.svc:5000/userXX-devspaces/workshop-app
     newTag: latest
 ```
 
